@@ -18,10 +18,37 @@
 </tr>
 
 <tr>
-    <td><label for="${keys.namespace}">Conjur Appliance URL:</label></td>
+    <td><label for="${keys.applianceUrl}">Conjur Appliance URL:</label></td>
     <td>
-        <props:textProperty name="${keys.namespace}"
+        <props:textProperty name="${keys.applianceUrl}"
                             className="longField textProperty_max-width js_max-width"/>
-        <span class="error" id="error_${keys.namespace}"/>
+        <span class="error" id="error_${keys.applianceUrl}"/>
+    </td>
+</tr>
+
+<tr>
+    <td><label for="${keys.account}">Conjur Account:</label></td>
+    <td>
+        <props:textProperty name="${keys.account}"
+                            className="longField textProperty_max-width js_max-width"/>
+        <span class="error" id="error_${keys.account}"/>
+    </td>
+</tr>
+
+<tr>
+    <td><label for="${keys.authnLogin}">Conjur Authn Login:</label></td>
+    <td>
+        <props:textProperty name="${keys.authnLogin}"
+                            className="longField textProperty_max-width js_max-width"/>
+        <span class="error" id="error_${keys.authnLogin}"/>
+    </td>
+</tr>
+
+<tr>
+    <td><label for="${keys.apiKey}">Conjur API Key:</label></td>
+    <td>
+        <props:passwordProperty name="${keys.apiKey}"
+                            className="longField textProperty_max-width js_max-width"/>
+        <span class="error" id="error_${keys.apiKey}"/>
     </td>
 </tr>
