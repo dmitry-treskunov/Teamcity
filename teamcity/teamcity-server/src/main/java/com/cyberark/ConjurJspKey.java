@@ -7,6 +7,8 @@ public class ConjurJspKey {
     private String account = "account";
     private String authnLogin = "login";
     private String apiKey = "apiKey";
+    private String certFile = "certFile";
+    private String failOnError = "failOnError";
 
     public String getApplianceUrl(){
         return this.applianceUrl;
@@ -23,4 +25,8 @@ public class ConjurJspKey {
     public String getApiKey(){
         return this.apiKey;
     }
+
+    public String getCertFile() { return this.certFile; }
+
+    public String getFailOnError() { return this.failOnError; }
 }
