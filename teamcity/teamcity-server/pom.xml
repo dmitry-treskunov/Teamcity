@@ -45,6 +45,12 @@
       <version>${teamcity-version}</version>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>org.jetbrains.teamcity</groupId>
+          <artifactId>agent-api</artifactId>
+          <version>2020.1</version>
+          <scope>compile</scope>
+      </dependency>
 
   </dependencies>
 
