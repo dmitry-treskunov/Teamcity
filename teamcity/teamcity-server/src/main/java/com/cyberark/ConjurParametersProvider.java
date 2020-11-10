@@ -1,11 +1,21 @@
 package com.cyberark;
 
-import com.thoughtworks.xstream.mapper.Mapper;
+import jetbrains.buildServer.agent.*;
+import jetbrains.buildServer.agentServer.AgentBuild;
+import jetbrains.buildServer.artifacts.ArtifactDependencyInfo;
+import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.serverSide.*;
 
 import jetbrains.buildServer.serverSide.parameters.AbstractBuildParametersProvider;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
+import jetbrains.buildServer.util.Option;
+import jetbrains.buildServer.util.PasswordReplacer;
+import jetbrains.buildServer.vcs.VcsChangeInfo;
+import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcs.VcsRootEntry;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 
 import java.util.*;
 
@@ -63,6 +73,9 @@ public class ConjurParametersProvider extends AbstractBuildParametersProvider {
         Map<String, String> conjurFeatures = connectionFeatures.getParameters();
 
         Map<String, String> parameters = build.getBuildOwnParameters();
+
+
+
 
 
 
