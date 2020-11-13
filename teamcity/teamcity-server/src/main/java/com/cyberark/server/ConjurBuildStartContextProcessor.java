@@ -110,7 +110,7 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
 
 
         // TODO: Connectiomn should not be hard coded
-        SProjectFeatureDescriptor connectionFeatures = getConnectionType(project, "Connection");
+        SProjectFeatureDescriptor connectionFeatures = getConnectionType(project, ConjurSettings.getFeatureType());
         ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(connectionFeatures.getParameters());
         ConjurConfig config = new ConjurConfig(
                 conjurConfig.getApplianceUrl(),

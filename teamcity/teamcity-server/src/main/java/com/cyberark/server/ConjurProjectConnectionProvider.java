@@ -1,6 +1,8 @@
 package com.cyberark.server;
 
+import com.cyberark.common.ConjurConnectionParameters;
 import com.cyberark.common.ConjurJspKey;
+import com.cyberark.common.ConjurSettings;
 import jetbrains.buildServer.serverSide.oauth.OAuthProvider;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import java.util.Map;
@@ -19,12 +21,12 @@ public class ConjurProjectConnectionProvider extends OAuthProvider {
 	@Override
 	@NotNull
 	public String getDisplayName() {
-		return "Cyberark Conjur";
+		return ConjurSettings.getConnectionName();
 	}
 
 	@Override
 	@NotNull
-	public String getType() { return "Connection"; }
+	public String getType() { return ConjurSettings.getFeatureType(); }
 
 	@Override
 	public String getEditParametersUrl() {
@@ -34,13 +36,9 @@ public class ConjurProjectConnectionProvider extends OAuthProvider {
 	@Override
 	@NotNull
 	public String describeConnection(OAuthConnectionDescriptor connection) {
-    	ConjurJspKey keys = new ConjurJspKey();
-    	Map<String, String> params = connection.getParameters();
-
-    	String applianceUrl = params.get(keys.getApplianceUrl());
-    	String authnLogin = params.get(keys.getAuthnLogin());
+		ConjurConnectionParameters parameters = new ConjurConnectionParameters(connection.getParameters());
 
 		return String.format("Connection to Cyberark Conjur server at '%s' with login '%s'",
-				applianceUrl, authnLogin );
+				parameters.getApplianceUrl(), parameters.getAuthnLogin());
 	}
 }

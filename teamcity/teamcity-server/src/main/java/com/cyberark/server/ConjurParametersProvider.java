@@ -1,5 +1,6 @@
 package com.cyberark.server;
 
+import com.cyberark.common.ConjurSettings;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.parameters.AbstractBuildParametersProvider;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
@@ -21,7 +22,7 @@ public class ConjurParametersProvider extends AbstractBuildParametersProvider {
         while(it.hasNext()) {
             SProjectFeatureDescriptor desc = it.next();
             // TODO: "Connection" probably should not be hardcoded. Also this connection is different in the hashi implemention
-            if (desc.getParameters().get(OAuthConstants.OAUTH_TYPE_PARAM).equals("Connection")) {
+            if (desc.getParameters().get(OAuthConstants.OAUTH_TYPE_PARAM).equals(ConjurSettings.getFeatureType())) {
                 return true;
             }
         }
@@ -46,7 +47,7 @@ public class ConjurParametersProvider extends AbstractBuildParametersProvider {
         while(it.hasNext()) {
             SProjectFeatureDescriptor desc = it.next();
             // TODO: "Connection" should probably not be hardedcoded. Also this connection is different in the hashi implemention
-            if (desc.getParameters().get(OAuthConstants.OAUTH_TYPE_PARAM).equals("Connection")) {
+            if (desc.getParameters().get(OAuthConstants.OAUTH_TYPE_PARAM).equals(ConjurSettings.getFeatureType())) {
                 connectionFeatures = desc;
                 break;
             }

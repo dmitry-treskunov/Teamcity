@@ -22,7 +22,7 @@ public class ConjurJspKey {
         return this.authnLogin;
     }
 
-    public String getApiKey(){
+    public String getApiKey() {
         return this.apiKey;
     }
 

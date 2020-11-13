@@ -1,6 +1,6 @@
 <%@ include file="/include-internal.jsp" %>
 
-<jsp:useBean id="keys" class="com.cyberark.ConjurJspKey"/>
+<jsp:useBean id="keys" class="com.cyberark.common.ConjurJspKey"/>
 
 <style type="text/css">
     .auth-container {
