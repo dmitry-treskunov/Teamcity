@@ -1,9 +1,6 @@
 package com.cyberark.server;
 
-import jetbrains.buildServer.serverSide.BuildStartContext;
-import jetbrains.buildServer.serverSide.BuildStartContextProcessor;
-import jetbrains.buildServer.serverSide.SProjectFeatureDescriptor;
-import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
 
 import javax.net.ssl.SSLContext;
@@ -79,6 +76,21 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         return variableIds;
     }
 
+    private SProjectFeatureDescriptor getConnectionType(SProject project, String providerType) {
+        Iterator<SProjectFeatureDescriptor> it = project.getAvailableFeaturesOfType(OAuthConstants.FEATURE_TYPE).iterator();
+        while(it.hasNext()) {
+            SProjectFeatureDescriptor desc = it.next();
+            String connectionType = desc.getParameters().get(OAuthConstants.OAUTH_TYPE_PARAM);
+
+            if (connectionType.equals(providerType)) {
+                // TODO: Some of these print statements should be logged via the Teamcity logger (If its possible)
+                // System.out.printf("Found connection feature for TYPE '%s'\n", providerType);
+                return desc;
+            }
+        }
+        return null;
+    }
+
     @Override
     public void updateParameters(BuildStartContext context) {
         // TODO: For now we are going to implement all the logic on the Teamcity server rather than the agent
@@ -89,28 +101,16 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         // retrieve the secrets on the agent
         // This will allow the ability to put CIDR restrictions on an API key so it can only run on specific
         // Teamcity agents.
+
         SRunningBuild build = context.getBuild();
-        Iterator<SProjectFeatureDescriptor> it = build.getBuildType().getProject().getAvailableFeaturesOfType(OAuthConstants.FEATURE_TYPE).iterator();
-        SProjectFeatureDescriptor connectionFeatures = null;
+        SProject project = build.getBuildType().getProject();
 
-        // System.out.println("Starting to look at Feature descriptions for connection");
-        while(it.hasNext()) {
-            SProjectFeatureDescriptor desc = it.next();
-            String providerType = desc.getParameters().get(OAuthConstants.OAUTH_TYPE_PARAM);
-
-            // TODO: "Connection" should probably not be hardedcoded. Also this connection
-            // is different in the hashi implemention. Seems like it should be like `conjur-connection` or something
-            if (providerType.equals("Connection")) {
-                // TODO: Some of these print statements should be logged via the Teamcity logger (If its possible)
-                // System.out.printf("Found connection feature for TYPE '%s'\n", providerType);
-                connectionFeatures = desc;
-                break;
-            }
-        }
-
-        // TODO: This should be done through a class (This logic will have to be included on the agent at some point)
+        Map<String, String> buildParams = build.getBuildOwnParameters();
+        Map<String, String> conjurVariables = getVariableIdsFromBuildParameters(buildParams);
 
 
+        // TODO: Connectiomn should not be hard coded
+        SProjectFeatureDescriptor connectionFeatures = getConnectionType(project, "Connection");
         ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(connectionFeatures.getParameters());
         ConjurConfig config = new ConjurConfig(
                 conjurConfig.getApplianceUrl(),
@@ -123,14 +123,12 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         config.ignoreSsl = true;
         ConjurApi client = new ConjurApi(config);
 
-        Map<String, String> buildParams = context.getBuild().getBuildOwnParameters();
-        Map<String, String> conjurVariables = getVariableIdsFromBuildParameters(buildParams);
 
         try {
             // Conjur conjur = new Conjur(authnLogin, apiKey, getSSLContext(certFile));
             client.authenticate();
 
-
+            // TODO: Implement failOnError around here
             for(Map.Entry<String, String> kv : conjurVariables.entrySet()) {
                 HttpResponse response = client.getSecret(kv.getValue());
                 if (response.statusCode != 200) {
@@ -138,18 +136,16 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
                     return;
                 }
 
-                // TODO: I think this will work? I do not know if I need to create another map or do a different way of replacing the value
                 kv.setValue(response.body);
-                // System.out.println("THIS IS THE VALUE: " + response.body);
             }
 
         } catch (Exception e) {
-            // TODO: Gotta figure out how to make this look prettier
-            // I think it is okay to catch all exceptions here, as long as we can forward the exception
-            // To some type of log messages and to the build.
 
-            // Map create an exception that wraps all of these exceptions called something like
-            // ConjurBuildStartUpdateParametersException, just make sure we can include an inner exception
+            // TODO: Gotta figure out how to make this look prettier
+            //  I think it is okay to catch all exceptions here, as long as we can forward the exception
+            //  To some type of log messages and to the build.
+            //  Maybe create an exception that wraps all of these exceptions called
+            //  ConjurBuildStartUpdateParametersException, just make sure we can include an inner exception
             e.printStackTrace();
             System.out.println("AN ERROR HAS OCCURED: " + e.toString());
             return;
