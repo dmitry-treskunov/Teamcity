@@ -57,6 +57,9 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         return variableIds;
     }
 
+    // TODO: Currently when retrieving the connection type, we find the first connection that meets the `providerType`
+    //   and then return that object. It is possible to define multiple connections. I think if multiples are defined
+    //   an error should be returned. And only accept 1 connection per project for the time being.
     private SProjectFeatureDescriptor getConnectionType(SProject project, String providerType) {
         Iterator<SProjectFeatureDescriptor> it = project.getAvailableFeaturesOfType(OAuthConstants.FEATURE_TYPE).iterator();
         while(it.hasNext()) {
@@ -89,8 +92,6 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         Map<String, String> buildParams = build.getBuildOwnParameters();
         Map<String, String> conjurVariables = getVariableIdsFromBuildParameters(buildParams);
 
-
-        // TODO: Connectiomn should not be hard coded
         SProjectFeatureDescriptor connectionFeatures = getConnectionType(project, ConjurSettings.getFeatureType());
         ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(connectionFeatures.getParameters());
         ConjurConfig config = new ConjurConfig(
@@ -105,7 +106,6 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
 
 
         try {
-            // Conjur conjur = new Conjur(authnLogin, apiKey, getSSLContext(certFile));
             client.authenticate();
 
             // TODO: Implement failOnError around here
@@ -113,7 +113,6 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
                 HttpResponse response = client.getSecret(kv.getValue());
                 if (response.statusCode != 200) {
                     System.out.printf("ERROR: Received status code '%d'. %s", response.statusCode, response.body);
-                    return;
                 }
 
                 kv.setValue(response.body);
@@ -126,6 +125,7 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
             //  To some type of log messages and to the build.
             //  Maybe create an exception that wraps all of these exceptions called
             //  ConjurBuildStartUpdateParametersException, just make sure we can include an inner exception
+            //  Also if a exception is thrown should we fail or only fails if `failOnError` is enabled?
             e.printStackTrace();
             System.out.println("AN ERROR HAS OCCURED: " + e.toString());
             return;
