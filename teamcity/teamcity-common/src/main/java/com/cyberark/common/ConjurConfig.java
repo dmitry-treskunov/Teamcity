@@ -13,20 +13,21 @@ public class ConjurConfig {
     public String authnType;
     public String serviceId;
     public Boolean ignoreSsl;
+    public String certificateContent;
 
     public ConjurConfig(String url, String account) {
-        this(url, account, null, null, null);
+        this(url, account, null, null, null, null);
     }
 
     public ConjurConfig(String url, String account, String username) {
-        this(url, account, username, null, null);
+        this(url, account, username, null, null, null);
     }
 
     public ConjurConfig(String url, String account, String username, String apiKey) {
-        this(url, account, username, apiKey, null);
+        this(url, account, username, apiKey, null, null);
     }
 
-    public ConjurConfig(String url, String account, String username, String apiKey, String sessionToken) {
+    public ConjurConfig(String url, String account, String username, String apiKey, String sessionToken, String certificateContent) {
         this.url = url.trim();
         this.account = account;
         this.username = username;
@@ -35,6 +36,7 @@ public class ConjurConfig {
         this.ignoreSsl = false;
         this.serviceId = null;
         this.authnType = null;
+        this.certificateContent = certificateContent;
     }
 
     public String authenticateUrl() {

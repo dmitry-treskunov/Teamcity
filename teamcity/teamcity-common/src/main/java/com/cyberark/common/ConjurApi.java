@@ -14,7 +14,7 @@ public class ConjurApi {
 
     public HttpResponse health() {
         String url = this.config.url + "/health";
-        return HttpClient.get(url, "");
+        return HttpClient.get(url, "", this.config.certificateContent);
     }
 
     private String getAuthenticatorUrl() throws ConjurApiAuthenticateException {
@@ -45,7 +45,7 @@ public class ConjurApi {
 
     public void authenticate() throws ConjurApiAuthenticateException {
         String url = getAuthenticatorUrl();
-        HttpResponse response = HttpClient.post(url, "", this.config.apiKey);
+        HttpResponse response = HttpClient.post(url, "", this.config.apiKey, this.config.certificateContent);
         // successful authentication returns 200 status code
         if(response.statusCode != 200) {
             throw new ConjurApiAuthenticateException("Failed to authenticate. Received status code: " + response.statusCode);
@@ -59,31 +59,31 @@ public class ConjurApi {
 
     public HttpResponse list() {
         String url = this.config.listUrl();
-        return HttpClient.get(url, this.config.sessionToken);
+        return HttpClient.get(url, this.config.sessionToken, this.config.certificateContent);
     }
 
     public HttpResponse appendPolicy(String policyBranch, String policyContent) {
         String url = this.config.loadPolicyUrl(policyBranch);
-        return HttpClient.post(url, this.config.sessionToken, policyContent);
+        return HttpClient.post(url, this.config.sessionToken, policyContent, this.config.certificateContent);
     }
 
     public HttpResponse replacePolicy(String policyBranch, String policyContent) {
         String url = this.config.loadPolicyUrl(policyBranch);
-        return HttpClient.put(url, this.config.sessionToken, policyContent);
+        return HttpClient.put(url, this.config.sessionToken, policyContent, this.config.certificateContent);
     }
 
     public HttpResponse patchPolicy(String policyBranch, String policyContent) {
         String url = this.config.loadPolicyUrl(policyBranch);
-        return HttpClient.patch(url, this.config.sessionToken, policyContent);
+        return HttpClient.patch(url, this.config.sessionToken, policyContent, this.config.certificateContent);
     }
 
     public HttpResponse getSecret(String secretId) {
         String url = this.config.secretUrl(secretId);
-        return HttpClient.get(url, this.config.sessionToken);
+        return HttpClient.get(url, this.config.sessionToken, this.config.certificateContent);
     }
 
     public HttpResponse setSecret(String secretId, String secretValue) {
         String url = this.config.secretUrl(secretId);
-        return HttpClient.post(url, this.config.sessionToken, secretValue);
+        return HttpClient.post(url, this.config.sessionToken, secretValue, this.config.certificateContent);
     }
 }

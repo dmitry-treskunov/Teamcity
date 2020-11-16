@@ -1,18 +1,15 @@
 package com.cyberark.common;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.*;
 
 import com.cyberark.common.exceptions.*;
 
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.NoSuchAlgorithmException;
 import java.security.KeyManagementException;
@@ -21,11 +18,10 @@ import java.security.KeyManagementException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Base64;
-import java.io.UnsupportedEncodingException;
 
 public class HttpClient {
 
-    public static Boolean DEBUG=false;
+    private final static Boolean DEBUG=false;
 
     // ==========================================
     // void disableSSL()
@@ -67,61 +63,61 @@ public class HttpClient {
 
     } // disableSSL
 
-
-
-    public static String getThrowException(String urlString, String authHeader) throws InvalidHttpStatusCodeException {
-        return responseThrowException(get(urlString, authHeader));
+    private static ByteArrayInputStream getInputStreamFromString(String input) throws IOException {
+        return new ByteArrayInputStream(input.getBytes());
     }
 
-    public static String postThrowException(String urlString, String authHeader, String body) throws InvalidHttpStatusCodeException{
-        return responseThrowException(post(urlString, authHeader, body));
-    }
+    public static SSLSocketFactory getSSLSocketFactory(String certificateContent) throws CertificateException, KeyStoreException, IOException, NoSuchAlgorithmException, KeyManagementException  {
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            Certificate cert = cf.generateCertificate(getInputStreamFromString(certificateContent));
 
-    public static String patchThrowException(String urlString, String authHeader, String body) throws InvalidHttpStatusCodeException {
-        return responseThrowException(patch(urlString, authHeader, body));
-    }
+            final KeyStore ks = KeyStore.getInstance("JKS");
+            ks.load(null);
+            ks.setCertificateEntry("conjurTlsCaPath", cert);
+            final TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+            tmf.init(ks);
 
-    public static String putThrowException(String urlString, String authHeader, String body) throws InvalidHttpStatusCodeException {
-        return responseThrowException(put(urlString, authHeader, body));
-    }
+            SSLContext conjurSSLContext = SSLContext.getInstance("TLS");
+            conjurSSLContext.init(null, tmf.getTrustManagers(), null);
 
-    public static String responseThrowException(HttpResponse response) throws InvalidHttpStatusCodeException {
-        if(response.statusCode > 299) {
-            throw new InvalidHttpStatusCodeException("");
-        }
-        return response.body;
+            return conjurSSLContext.getSocketFactory();
     }
 
 
-    public static HttpResponse get(String urlString, String authHeader) {
-        return request(urlString, "GET", authHeader, null);
+    public static HttpResponse get(String urlString, String authHeader, String certificateContent) {
+        return request(urlString, "GET", authHeader, null, certificateContent);
     }
 
-    public static HttpResponse post(String urlString, String authHeader, String body) {
-        return request(urlString, "POST", authHeader, body);
+    public static HttpResponse post(String urlString, String authHeader, String body, String certificateContent) {
+        return request(urlString, "POST", authHeader, body, certificateContent);
     }
 
-    public static HttpResponse patch(String urlString, String authHeader, String body) {
-        return request(urlString, "PATCH", authHeader, body);
+    public static HttpResponse patch(String urlString, String authHeader, String body, String certificateContent) {
+        return request(urlString, "PATCH", authHeader, body, certificateContent);
     }
 
-    public static HttpResponse put(String urlString, String authHeader, String body) {
-        return request(urlString, "PUT", authHeader, body);
+    public static HttpResponse put(String urlString, String authHeader, String body, String certificateContent) {
+        return request(urlString, "PUT", authHeader, body, certificateContent);
     }
 
-    public static HttpResponse request(String urlString, String method, String authHeader, String body) {
+    public static HttpResponse request(String urlString, String method, String authHeader, String body, String certificateContent) {
         String output = "";
         int statusCode = 0;
         try {
             // Create http connection with Authorization header and correct Content-Type
             URL url = new URL(urlString);
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+
+            if (certificateContent != null) {
+                conn.setSSLSocketFactory(getSSLSocketFactory(certificateContent));
+            }
+
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("Authorization", authHeader);
 
             // java doesn't allow some http verbs so you have to make the method POST and then create an override property
-            if(method != "GET" && method != "POST" && method != "DELETE"  && method != "PUT"  ) {
+            if(!method.equals("GET") && !method.equals("POST") && !method.equals("DELETE") && !method.equals("PUT")) {
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("X-HTTP-Method-Override", method);
             } else {
@@ -129,11 +125,7 @@ public class HttpClient {
             }
 
             // Do not write body to request if body is empty or null or method is GET
-            if(body == "" || body == null || method == "GET") {
-                if(HttpClient.DEBUG) {
-                    System.out.println("Body will not be added to http request");
-                }
-            } else {
+            if(body != null && !method.equals("GET") && !body.equals("")) {
                 OutputStream os = conn.getOutputStream();
                 os.write(body.getBytes());
                 os.flush();
@@ -159,6 +151,14 @@ public class HttpClient {
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (CertificateException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        } catch (KeyManagementException e) {
             e.printStackTrace();
         }
 

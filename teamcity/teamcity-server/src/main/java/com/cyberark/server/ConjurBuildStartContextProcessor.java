@@ -21,25 +21,6 @@ import com.cyberark.common.*;
 
 public class ConjurBuildStartContextProcessor implements BuildStartContextProcessor {
 
-    public ByteArrayInputStream getInputStreamFromString(String input) throws IOException {
-        return new ByteArrayInputStream(input.getBytes());
-    }
-
-    // TODO: I think this method works.
-    private SSLContext getSSLContext(String certContents) throws CertificateException, KeyStoreException, IOException, NoSuchAlgorithmException, KeyManagementException {
-        CertificateFactory cf = CertificateFactory.getInstance("X.509");
-        Certificate cert = cf.generateCertificate(getInputStreamFromString(certContents));
-
-        final KeyStore ks = KeyStore.getInstance("JKS");
-        ks.load(null);
-        ks.setCertificateEntry("conjurTlsCaPath", cert);
-        final TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
-        tmf.init(ks);
-
-        SSLContext conjurSSLContext = SSLContext.getInstance("TLS");
-        conjurSSLContext.init(null, tmf.getTrustManagers(), null);
-        return conjurSSLContext;
-    }
 
     // This method will turn a map of SOMETHING = %conjur:some/secret% into
     // SOMETHING = some/secret
@@ -116,11 +97,10 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
                 conjurConfig.getApplianceUrl(),
                 conjurConfig.getAccount(),
                 conjurConfig.getAuthnLogin(),
-                conjurConfig.getApiKey());
+                conjurConfig.getApiKey(),
+                null,
+                conjurConfig.getCertFile());
 
-        // TODO: Add ability to add the certificate to the client so
-        //  I do not have to hard code in to ignore SSL Cert verification
-        config.ignoreSsl = true;
         ConjurApi client = new ConjurApi(config);
 
 
