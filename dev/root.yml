@@ -1,0 +1,12 @@
+- !host teamcity/projectName
+
+- &secrets
+  - !variable db/postgres/username
+  - !variable db/postgres/password
+
+- !permit
+  role: !host teamcity/projectName
+  resources: *secrets
+  privileges:
+  - read
+  - execute

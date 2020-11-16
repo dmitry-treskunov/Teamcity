@@ -1,0 +1,77 @@
+version: "3"
+services:
+  dap:
+    image: captainfluffytoes/dap:11.4.0
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      CONTAINER_NAME: "conjur-master"
+      ADMIN_PASSWORD: "CYberark11@@"
+      CONJUR_ACCOUNT: "conjur"
+      CONJUR_LOG_LEVEL: debug
+    ports:
+      - "443:443"
+      - "5432:5432"
+      - "1999:1999"
+    volumes:
+      - conjur-certificate:/opt/conjur/etc/ssl/
+    networks:
+      teamcity-network:
+        aliases:
+          - conjur-master
+
+  cli:
+    image: cyberark/conjur-cli:5
+    entrypoint: ""
+    command: "sleep infinity"
+    working_dir: ${PWD}
+    volumes:
+      - .:/${PWD}
+    networks:
+      - teamcity-network
+
+  configurer:
+    image: configurer
+    build:
+      context: configurer
+      dockerfile: Dockerfile
+    working_dir: ${PWD}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/${PWD}
+      - conjur-env:/tmp
+    command: [./configurer/config.sh]
+    depends_on:
+      - dap
+    networks:
+      - teamcity-network
+
+  teamcity-server:
+    image: jetbrains/teamcity-server
+    volumes:
+      - ${HOME}/tmp/teamcity/data:/data/teamcity_server/datadir 
+      - ${HOME}/tmp/teamcity/logs:/opt/teamcity/logs
+    ports:
+      - "8111:8111"
+    networks:
+      teamcity-network:
+        aliases:
+          - teamcity-server
+
+  teamcity-agent:
+    image: jetbrains/teamcity-agent
+    environment:
+      SERVER_URL: "http://teamcity-server:8111"
+    volumes:
+      - ${HOME}/tmp/teamcity/agent/data/conf:/data/teamcity_agent/conf 
+    networks:
+      teamcity-network:
+        aliases:
+          - teamcity-agent
+
+volumes:
+  conjur-certificate:
+  conjur-env: 
+          
+networks:
+  teamcity-network:
