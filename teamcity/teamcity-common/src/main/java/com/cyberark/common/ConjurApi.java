@@ -7,9 +7,6 @@ public class ConjurApi {
 
     public ConjurApi(ConjurConfig config) {
         this.config = config;
-        if(this.config.ignoreSsl) {
-            HttpClient.disableSSL();
-        }
     }
 
     public HttpResponse health() {
