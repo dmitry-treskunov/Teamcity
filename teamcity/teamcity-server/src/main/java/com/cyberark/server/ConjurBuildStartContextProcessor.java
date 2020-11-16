@@ -78,21 +78,30 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
     @Override
     public void updateParameters(BuildStartContext context) {
         // TODO: For now we are going to implement all the logic on the Teamcity server rather than the agent
-        // This means that this method will retrieve the secrets and then set them for the actual agent
-        // However when we implement secret retrieval on the agent we will need to get the `Connection` info
-        // And pass that to the agent
-        // the agent will then use that `Connection` info to establish a connection to the Conjur REST API and
-        // retrieve the secrets on the agent
-        // This will allow the ability to put CIDR restrictions on an API key so it can only run on specific
-        // Teamcity agents.
+        //   This means that this method will retrieve the secrets and then set them for the actual agent
+        //   However when we implement secret retrieval on the agent we will need to get the `Connection` info
+        //   And pass that to the agent
+        //   the agent will then use that `Connection` info to establish a connection to the Conjur REST API and
+        //   retrieve the secrets on the agent
+        //   This will allow the ability to put CIDR restrictions on an API key so it can only run on specific
+        //   Teamcity agents.
 
         SRunningBuild build = context.getBuild();
-        SProject project = build.getBuildType().getProject();
 
-        Map<String, String> buildParams = build.getBuildOwnParameters();
-        Map<String, String> conjurVariables = getVariableIdsFromBuildParameters(buildParams);
+        SBuildType buildType = build.getBuildType();
+        if (buildType == null) {
+            // It is possible of build type to be null, if this is the case lets return and not retrieve conjur secrets
+            return;
+        }
+        SProject project = buildType.getProject();
 
         SProjectFeatureDescriptor connectionFeatures = getConnectionType(project, ConjurSettings.getFeatureType());
+        if (connectionFeatures == null) {
+            // If connection feature cannot be found (no connection has been configured on this project)
+            // then return and do not perform conjur secret retrieval actions
+            return;
+        }
+
         ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(connectionFeatures.getParameters());
         ConjurConfig config = new ConjurConfig(
                 conjurConfig.getApplianceUrl(),
@@ -102,9 +111,16 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
                 null,
                 conjurConfig.getCertFile());
 
+        Map<String, String> buildParams = build.getBuildOwnParameters();
+        Map<String, String> conjurVariables = getVariableIdsFromBuildParameters(buildParams);
+
+        if (conjurVariables.size() == 0) {
+            // No conjur variables are present in the build parameters, if this is the case lets not attempt to
+            // authenticate and just return
+            return;
+        }
+
         ConjurApi client = new ConjurApi(config);
-
-
         try {
             client.authenticate();
 
