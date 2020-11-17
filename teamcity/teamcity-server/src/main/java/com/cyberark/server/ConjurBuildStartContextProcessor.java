@@ -1,5 +1,7 @@
 package com.cyberark.server;
 
+import com.cyberark.common.exceptions.ConjurApiAuthenticateException;
+import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
 
@@ -75,6 +77,10 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         return null;
     }
 
+    private BuildProblemData createBuildProblem(SBuild build, String message) {
+        return BuildProblemData.createBuildProblem(build.getBuildNumber(), ConjurSettings.getFeatureType(), message);
+    }
+
     @Override
     public void updateParameters(BuildStartContext context) {
         // TODO: For now we are going to implement all the logic on the Teamcity server rather than the agent
@@ -128,23 +134,32 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
             // TODO: Implement failOnError around here
             for(Map.Entry<String, String> kv : conjurVariables.entrySet()) {
                 HttpResponse response = client.getSecret(kv.getValue());
-                if (response.statusCode != 200) {
-                    System.out.printf("ERROR: Received status code '%d'. %s", response.statusCode, response.body);
+                if (response.statusCode != 200 && conjurConfig.getFailOnError()) {
+                    BuildProblemData buildProblem = createBuildProblem(build,
+                            String.format("ERROR: Retrieving secret '%s' from conjur. Received status code '%d'",
+                                    kv.getValue(), response.statusCode));
+                    build.addBuildProblem(buildProblem);
+                    return;
                 }
 
                 kv.setValue(response.body);
             }
 
-        } catch (Exception e) {
-
-            // TODO: Gotta figure out how to make this look prettier
-            //  I think it is okay to catch all exceptions here, as long as we can forward the exception
-            //  To some type of log messages and to the build.
-            //  Maybe create an exception that wraps all of these exceptions called
-            //  ConjurBuildStartUpdateParametersException, just make sure we can include an inner exception
-            //  Also if a exception is thrown should we fail or only fails if `failOnError` is enabled?
-            e.printStackTrace();
-            System.out.println("AN ERROR HAS OCCURED: " + e.toString());
+        } catch (ConjurApiAuthenticateException e) {
+            BuildProblemData buildProblem = createBuildProblem(build,
+                    String.format("ERROR: Authenticating to conjur at '%s' with account '%s' and with login '%s'. %s",
+                            conjurConfig.getApplianceUrl(),
+                            conjurConfig.getAccount(),
+                            conjurConfig.getAuthnLogin(),
+                            e.getMessage()));
+            build.addBuildProblem(buildProblem);
+            return;
+        }
+        catch (Exception e) {
+            BuildProblemData buildProblem = createBuildProblem(build,
+                    String.format("ERROR: Generic error returned when establishing connection to conjur. %s",
+                            e.getMessage()));
+            build.addBuildProblem(buildProblem);
             return;
         }
 
