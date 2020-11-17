@@ -103,6 +103,7 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         }
 
         ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(connectionFeatures.getParameters());
+
         ConjurConfig config = new ConjurConfig(
                 conjurConfig.getApplianceUrl(),
                 conjurConfig.getAccount(),
