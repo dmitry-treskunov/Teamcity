@@ -74,3 +74,12 @@
         <span class="smallNote">Whether to fail builds in case of parameter resolving error</span>
     </td>
 </tr>
+
+<tr>
+    <td><label for="${keys.verboseLogging}">Enable verbose logging</label></td>
+    <td>
+        <props:checkboxProperty name="${keys.verboseLogging}"/>
+        <span class="error" id="error_${keys.verboseLogging}"/>
+        <span class="smallNote">Whether to enable verbose logging</span>
+    </td>
+</tr>
