@@ -1,5 +1,6 @@
 package com.cyberark.server;
 
+import com.cyberark.common.exceptions.ConjurApiAuthenticateException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
 
@@ -20,6 +21,8 @@ import java.util.Map;
 import com.cyberark.common.*;
 
 public class ConjurBuildStartContextProcessor implements BuildStartContextProcessor {
+
+    private LogUtil logger;
 
 
     // This method will turn a map of SOMETHING = %conjur:some/secret% into
@@ -86,6 +89,7 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         //   This will allow the ability to put CIDR restrictions on an API key so it can only run on specific
         //   Teamcity agents.
 
+
         SRunningBuild build = context.getBuild();
 
         SBuildType buildType = build.getBuildType();
@@ -103,6 +107,8 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         }
 
         ConjurConnectionParameters conjurConfig = new ConjurConnectionParameters(connectionFeatures.getParameters());
+        this.logger = new LogUtil(conjurConfig.getVerboseLogging());
+        this.logger.write(this, "Verbose Logging started");
 
         ConjurConfig config = new ConjurConfig(
                 conjurConfig.getApplianceUrl(),
@@ -116,6 +122,8 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
         Map<String, String> conjurVariables = getVariableIdsFromBuildParameters(buildParams);
 
         if (conjurVariables.size() == 0) {
+            this.logger.writeVerbose(this,
+                    "No conjur parameters were found. Conjur parameter should start with '%conjur:' and end with '%'");
             // No conjur variables are present in the build parameters, if this is the case lets not attempt to
             // authenticate and just return
             return;
@@ -129,13 +137,21 @@ public class ConjurBuildStartContextProcessor implements BuildStartContextProces
             for(Map.Entry<String, String> kv : conjurVariables.entrySet()) {
                 HttpResponse response = client.getSecret(kv.getValue());
                 if (response.statusCode != 200) {
-                    System.out.printf("ERROR: Received status code '%d'. %s", response.statusCode, response.body);
+                    this.logger.writeWarn(this,
+                            String.format("ERROR: Received status code '%d'. %s", response.statusCode, response.body));
+                    if (conjurConfig.getFailOnError()) {
+                        throw new Exception("Should fail because we are supposed to fail on error");
+                    }
                 }
 
                 kv.setValue(response.body);
             }
 
-        } catch (Exception e) {
+        }
+        catch(ConjurApiAuthenticateException e) {
+            return;
+        }
+        catch (Exception e) {
 
             // TODO: Gotta figure out how to make this look prettier
             //  I think it is okay to catch all exceptions here, as long as we can forward the exception

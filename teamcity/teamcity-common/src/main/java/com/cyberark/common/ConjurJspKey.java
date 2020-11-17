@@ -9,6 +9,7 @@ public class ConjurJspKey {
     private String apiKey = "apiKey";
     private String certFile = "certFile";
     private String failOnError = "failOnError";
+    private String verboseLogging = "verboseLogging";
 
     public String getApplianceUrl(){
         return this.applianceUrl;
@@ -29,4 +30,6 @@ public class ConjurJspKey {
     public String getCertFile() { return this.certFile; }
 
     public String getFailOnError() { return this.failOnError; }
+
+    public String getVerboseLogging() { return this.verboseLogging; }
 }
